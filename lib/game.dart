@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'questions.dart';
 import 'result.dart';
+import 'dart:async';
 
 class Game extends StatefulWidget {
   final List<Question> questions;
@@ -17,6 +18,7 @@ class _GameState extends State<Game> {
   int secondsRemaining = 10;
   late Question currentQuestion;
   bool showResult = false;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -26,28 +28,35 @@ class _GameState extends State<Game> {
   }
 
   void startTimer() {
-    secondsRemaining = 10;
-    showResult = false;
-    Future.delayed(Duration(seconds: 1), updateTimer);
-  }
+  secondsRemaining = 10;
+  showResult = false;
+  updateTimer();  // Directly call updateTimer without delay
+}
 
-  void updateTimer() {
-    if (secondsRemaining > 0) {
-      setState(() {
-        secondsRemaining--;
-      });
-      Future.delayed(Duration(seconds: 1), updateTimer);
-    } else {
-      goToNextQuestion();
-    }
+void updateTimer() {
+  if (secondsRemaining > 0) {
+    _timer = Timer(Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          secondsRemaining--;
+        });
+        updateTimer();  // Recursive call to update the timer after each second
+      }
+    });
+  } else {
+    goToNextQuestion();
   }
+}
+
 
   void selectAnswer(int index) {
+    _timer?.cancel();
     setState(() {
       showResult = true;
       if (index == currentQuestion.correctAnswerIndex) {
         score += 1;
       }
+
       Future.delayed(Duration(seconds: 2), goToNextQuestion);
     });
   }
