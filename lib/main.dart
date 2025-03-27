@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'music_player.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:path/path.dart' as Path;
+import 'firebase_options.dart';
 import 'questions.dart';
-import 'quiz.dart';
 import 'chat.dart';
-import 'game.dart';
 import 'gamepage.dart';
 
 
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -47,18 +48,52 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int currentPageIndex = 0;
   List<Widget> contacts = [];
-  List<Question> questions = [
-    Question(
-      question: "What is Flutter?",
-      options: ["A bird", "A framework", "A car", "A language"],
-      correctAnswerIndex: 1,
-    ),
-    Question(
-      question: "Who developed Flutter?",
-      options: ["Apple", "Google", "Facebook", "Microsoft"],
-      correctAnswerIndex: 1,
-    )
-  ];
+  List<Question> questions = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late CollectionReference _questionsCollection;
+
+  @override
+  void initState() {
+    super.initState();
+     _questionsCollection = _firestore.collection('questions');
+    _loadQuestions();
+  }
+
+  Future<void> _loadQuestions() async {
+    try {
+        final QuerySnapshot snapshot = await _questionsCollection.get(GetOptions(source: Source.server));
+        for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            print('Document ID: ${doc.id}');
+            print('Document Data: $data');
+            
+
+            final questionValue = data['question'];
+            final options = List<String>.from(data['options']);
+            final correctAnswerIndex = data['correctAnswerIndex'];
+            print(options.runtimeType);
+            print(correctAnswerIndex.runtimeType);
+
+            if (questionValue == null) {
+                print('Warning: Question value is null in document ${doc.id}');
+            } else if (questionValue is String) {
+                print('Question value is a String: $questionValue');
+                questions.add(Question(
+                    question: questionValue,
+                    options: options,
+                    correctAnswerIndex: correctAnswerIndex,
+                ));
+            } else {
+                print('Warning: Question value is not a String in document ${doc.id}, it is a ${questionValue.runtimeType}');
+            }
+        }
+        print('Loaded ${questions.length} questions.');
+    } catch (e) {
+        print('Error loading questions: $e');
+    }
+  }
+
+
 
 
   @override
@@ -113,18 +148,21 @@ class _MyHomePageState extends State<MyHomePage> {
 class defaultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Home"),
+      ),
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("Home Page"),
-              ],
-            )
+            Expanded(
+              child: Container(),
+            ),
+            MusicPlayer(key: key, audioFileName: 's1.mp3'),
+            
           ],
-        )
+        ),
+      ),
     );
   }
 }

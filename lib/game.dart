@@ -34,7 +34,7 @@ class _GameState extends State<Game> {
 }
 
 void updateTimer() {
-  if (secondsRemaining > 0) {
+  if (secondsRemaining >= 0) {
     _timer = Timer(Duration(seconds: 1), () {
       if (mounted) {
         setState(() {

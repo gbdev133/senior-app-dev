@@ -4,7 +4,7 @@ import 'game.dart';
 import 'questions.dart';
 
 class GamePage extends StatefulWidget {
-  List<Question> questions;
+  final List<Question> questions;
   GamePage({super.key, required this.questions});
 
   @override
@@ -19,7 +19,7 @@ class _GamePageState extends State<GamePage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
         ),
-        child: Text('Begin'),
+        child: const Text('Begin'),
         onPressed: () => {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => Game(questions: widget.questions))

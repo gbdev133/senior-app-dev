@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-
-
 class Question {
   final int correctAnswerIndex;
   final List<String> options;
