@@ -1,7 +1,6 @@
 // music_player.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:summerapp/volume_slider.dart';

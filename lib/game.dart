@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:summerapp/music_player.dart';
 import 'questions.dart';
 import 'result.dart';
-import 'music_player.dart';
 
 class Game extends StatefulWidget {
   final List<Question> questions;
