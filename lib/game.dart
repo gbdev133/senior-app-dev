@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:summerapp/music_player.dart';
 import 'questions.dart';
 import 'result.dart';
-import 'dart:async';
+import 'music_player.dart';
 
 class Game extends StatefulWidget {
   final List<Question> questions;
@@ -15,49 +16,23 @@ class Game extends StatefulWidget {
 class _GameState extends State<Game> {
   int currentQuestionIndex = 0;
   int score = 0;
-  int secondsRemaining = 10;
   late Question currentQuestion;
   bool showResult = false;
-  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     currentQuestion = widget.questions[currentQuestionIndex];
-    startTimer();
   }
 
-  void startTimer() {
-  secondsRemaining = 10;
-  showResult = false;
-  updateTimer();  // Directly call updateTimer without delay
-}
-
-void updateTimer() {
-  if (secondsRemaining >= 0) {
-    _timer = Timer(Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          secondsRemaining--;
-        });
-        updateTimer();  // Recursive call to update the timer after each second
-      }
-    });
-  } else {
-    goToNextQuestion();
-  }
-}
 
 
   void selectAnswer(int index) {
-    _timer?.cancel();
     setState(() {
       showResult = true;
       if (index == currentQuestion.correctAnswerIndex) {
         score += 1;
       }
-
-      Future.delayed(Duration(seconds: 2), goToNextQuestion);
     });
   }
 
@@ -66,7 +41,7 @@ void updateTimer() {
       setState(() {
         currentQuestionIndex++;
         currentQuestion = widget.questions[currentQuestionIndex];
-        startTimer();
+        showResult = false;
       });
     } else {
       if (mounted) {
@@ -82,9 +57,10 @@ void updateTimer() {
 
   @override
   Widget build(BuildContext context) {
+    print("showResult: $showResult");
     return Scaffold(
       appBar: AppBar(
-        title: Text("Quiz"),
+        title: const Text("Guess the Song in 10 Seconds"),
         backgroundColor: Colors.purple,
       ),
       body: Padding(
@@ -93,14 +69,9 @@ void updateTimer() {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              "Time: $secondsRemaining",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 24),
-            ),
             SizedBox(height: 20),
             Text(
-              currentQuestion.question,
+              "Question ${currentQuestionIndex + 1}: ${currentQuestion.question}",
               style: TextStyle(fontSize: 24),
               textAlign: TextAlign.center,
             ),
@@ -108,7 +79,7 @@ void updateTimer() {
             ...currentQuestion.options.map((option) {
               int index = currentQuestion.options.indexOf(option);
               return ElevatedButton(
-                onPressed: showResult ? null : () => selectAnswer(index),
+                onPressed: showResult ? () => setState(() {}) : () => selectAnswer(index),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: showResult
                       ? index == currentQuestion.correctAnswerIndex
@@ -119,6 +90,12 @@ void updateTimer() {
                 child: Text(option),
               );
             }),
+            const SizedBox(height: 20),
+            if (showResult) 
+              ElevatedButton(
+                onPressed: goToNextQuestion, 
+                child: const Text("Next")
+              ),
           ],
         ),
       ),

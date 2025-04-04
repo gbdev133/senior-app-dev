@@ -1,19 +1,23 @@
+// music_player.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:summerapp/volume_slider.dart';
 import 'SongSelector.dart';
 
 class MusicPlayer extends StatefulWidget {
-  String audioFileName;
-  MusicPlayer({super.key, required this.audioFileName});
+  FirebaseStorage storage; AudioPlayer audioPlayer;
+  final String? audioFileName; // Add audioFileName as a parameter
+
+  MusicPlayer({super.key, required this.storage, this.audioFileName, required this.audioPlayer});
+
   @override
   _MusicPlayerState createState() => _MusicPlayerState();
 }
 
 class _MusicPlayerState extends State<MusicPlayer> {
-  final storage = FirebaseStorage.instance;
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
   String formatDuration(Duration d) {
     String minutes = d.inMinutes.toString();
     String seconds = (d.inSeconds - d.inMinutes * 60).toString().padLeft(2, '0');
@@ -21,60 +25,77 @@ class _MusicPlayerState extends State<MusicPlayer> {
   }
 
   void handleSeek(double value) {
-    _audioPlayer.seek(Duration(seconds: value.toInt()));
+    widget.audioPlayer.seek(Duration(seconds: value.toInt()));
   }
 
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
+  StreamSubscription? positionSubscription;
+  StreamSubscription? durationSubscription;
 
   @override
   void initState() {
     super.initState();
-    extractAudio(widget.audioFileName); // Load initial audio
-    _audioPlayer.positionStream.listen((p) {
+    if (widget.audioFileName != null) {
+      extractAudio(widget.audioFileName!);
+    }
+    positionSubscription = widget.audioPlayer.positionStream.listen((p) {
+    if (mounted) {
       setState(() => position = p);
-      if (p >= duration) {
-        _audioPlayer.stop();
+      if (position >= duration) {
+        widget.audioPlayer.stop();
+        widget.audioPlayer.seek(Duration.zero);
         position = Duration.zero;
       }
+    }
     });
-    _audioPlayer.durationStream.listen((d) {
-      setState(() => duration = d!);
+    durationSubscription = widget.audioPlayer.durationStream.listen((d) {
+      if (mounted && d != null) {
+        setState(() => duration = d);
+      }
     });
+
+  }
+
+  @override
+  void dispose() {
+    positionSubscription?.cancel();
+    durationSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> extractAudio(String fileName) async {
-    final storageRef = storage.ref().child('audio/$fileName');
+    final storageRef = widget.storage.ref().child('audio/$fileName');
     try {
-      final url = await storageRef.getDownloadURL(); //Get download URL
-      await _audioPlayer.setUrl(url);
+      final url = await storageRef.getDownloadURL();
+      await widget.audioPlayer.setUrl(url);
     } catch (e) {
       print("Error setting Url for $fileName: $e");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         SongSelector(
-          audioPlayer: _audioPlayer,
+          audioPlayer: widget.audioPlayer,
           onSongSelected: (selectedSong) {
             extractAudio(selectedSong);
           },
-          storage: storage,
+          storage: widget.storage,
         ),
-        Text(formatDuration(position)),
+        Text("${formatDuration(position)}/${formatDuration(duration)}"),
         Slider(
           min: 0.0,
           value: position.inSeconds.toDouble(),
           max: duration.inSeconds.toDouble(),
           onChanged: (double value) {
-            _audioPlayer.pause();
+            widget.audioPlayer.pause();
             handleSeek(value);
           },
         ),
-        Text(formatDuration(duration)),
         Ink(
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
@@ -83,37 +104,27 @@ class _MusicPlayerState extends State<MusicPlayer> {
           child: IconButton(
             iconSize: 35,
             color: Colors.white,
-            icon: (_audioPlayer.playing
+            icon: (widget.audioPlayer.playing
                 ? const Icon(Icons.pause)
                 : const Icon(Icons.play_arrow)),
             onPressed: _playMusic,
           ),
         ),
         SizedBox(
-          width: 200, // or any other width you want
-          child: Slider(
-            value: _audioPlayer.volume,
-            max: 1,
-            min: 0.0,
-            onChanged: (value) {
-              setState(() {
-                _audioPlayer.setVolume(value);
-              });
-            },
-          ),
+          width: 200,
+          child: VolumeSlider(
+            audioPlayer: widget.audioPlayer,
+          )
         ),
       ],
     );
   }
 
   void _playMusic() async {
-    if (!_audioPlayer.playing) {
-      await _audioPlayer.play();
+    if (!widget.audioPlayer.playing) {
+      await widget.audioPlayer.play();
     } else {
-      await _audioPlayer.pause();
+      await widget.audioPlayer.pause();
     }
   }
-
 }
-
-

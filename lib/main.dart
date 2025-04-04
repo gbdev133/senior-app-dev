@@ -4,13 +4,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'music_player.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:path/path.dart' as Path;
+import 'dart:math';
 import 'firebase_options.dart';
 import 'questions.dart';
 import 'chat.dart';
 import 'gamepage.dart';
+import 'SongSelector.dart';
 
-
+final FirebaseStorage storage = FirebaseStorage.instance;
+final AudioPlayer audioPlayer = AudioPlayer();
+List<String> songList = [];
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -48,62 +51,84 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int currentPageIndex = 0;
   List<Widget> contacts = [];
-  List<Question> questions = [];
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
   late CollectionReference _questionsCollection;
+  late MusicPlayer musicPlayer;
+  int numQuestions = 5;
 
   @override
   void initState() {
     super.initState();
      _questionsCollection = _firestore.collection('questions');
-    _loadQuestions();
   }
 
-  Future<void> _loadQuestions() async {
-    try {
-        final QuerySnapshot snapshot = await _questionsCollection.get(GetOptions(source: Source.server));
-        for (var doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            print('Document ID: ${doc.id}');
-            print('Document Data: $data');
-            
 
-            final questionValue = data['question'];
-            final options = List<String>.from(data['options']);
-            final correctAnswerIndex = data['correctAnswerIndex'];
-            print(options.runtimeType);
-            print(correctAnswerIndex.runtimeType);
+  List<Question> genQuestions() {
+    List<String> tmp = List.from(songList);
+    List<Question> questions = [];
 
-            if (questionValue == null) {
-                print('Warning: Question value is null in document ${doc.id}');
-            } else if (questionValue is String) {
-                print('Question value is a String: $questionValue');
-                questions.add(Question(
-                    question: questionValue,
-                    options: options,
-                    correctAnswerIndex: correctAnswerIndex,
-                ));
-            } else {
-                print('Warning: Question value is not a String in document ${doc.id}, it is a ${questionValue.runtimeType}');
-            }
+    for (int i = 0; i < 2; i++) {
+      String correctAnswer = tmp[Random().nextInt(tmp.length)];
+      final storageRef = storage.ref().child('audio/$correctAnswer');
+      tmp.remove(correctAnswer);
+      List<String> options = [];
+
+      for (int j = 0; j < 3; j++) {
+        String incorrectAnswer = tmp[Random().nextInt(tmp.length)];
+        options.add(incorrectAnswer);
+        tmp.remove(incorrectAnswer);
+      }
+      options.add(correctAnswer);
+      options.shuffle();
+      int correctAnswerIndex = 0;
+      for (int j = 0; j < 4; j++) {
+        if (options[j] == correctAnswer) {
+          correctAnswerIndex = j;
         }
-        print('Loaded ${questions.length} questions.');
+        tmp.add(options[j]);
+      }
+      print('Correct answer index: $correctAnswerIndex');
+      print('Options: $options');
+      print('----');
+      questions.add(Question(
+        correctAnswerIndex: correctAnswerIndex, 
+        question: 'What is the name of this song?', 
+        options: options,
+        songURL: extractAudio(correctAnswer).toString()
+      ));
+    }
+
+    return questions;
+
+  }
+
+  Future<String> extractAudio(String fileName) async {
+    final storageRef = storage.ref().child('audio/$fileName');
+    String url = '';
+    try {
+      url = await storageRef.getDownloadURL();
     } catch (e) {
-        print('Error loading questions: $e');
+      print("Error setting Url for $fileName: $e");
+    }
+    return url;
+  }
+
+
+  void stopAudio() {
+    if (audioPlayer.playing) {
+      audioPlayer.stop();
     }
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
     Widget page;
     switch (currentPageIndex) {
       case 0:
-        page = defaultPage();
+        page = defaultPage(audioPlayer: audioPlayer, onStopAudio: stopAudio);
       case 1:
-        page = GamePage(questions: questions);
+        page = GamePage(questions: genQuestions());
       case 2:
         page = Chat(contacts: contacts);
       default:
@@ -116,6 +141,10 @@ class _MyHomePageState extends State<MyHomePage> {
         bottomNavigationBar: NavigationBar(
             onDestinationSelected: (int index) {
               setState(() {
+                if (currentPageIndex == 0 && index != 0) {
+                  audioPlayer.stop();
+                  
+                }
                 currentPageIndex = index;
               });
             },
@@ -126,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
               NavigationDestination(
                 selectedIcon: Icon(Icons.home),
                 icon: Icon(Icons.home_outlined),
-                label: 'Home',
+                label: 'Music',
               ),
 
               NavigationDestination(
@@ -145,21 +174,101 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class defaultPage extends StatelessWidget {
+
+class defaultPage extends StatefulWidget {
+  AudioPlayer audioPlayer;
+  final Function onStopAudio;
+  defaultPage({super.key, required this.audioPlayer, required this.onStopAudio});
+
+  @override
+  State<defaultPage> createState() => defaultPageState();
+}
+
+class defaultPageState extends State<defaultPage> {
+  List<String> _availableSongs = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSongList();
+  }
+
+  Future<void> _loadSongList() async {
+    try {
+      final ListResult result = await storage.ref('audio').listAll();
+      final List<String> songNames =
+          result.items.map((Reference ref) => ref.name).toList();
+      if (mounted) {
+        setState(() {
+          _availableSongs = songNames;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Error loading songs: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _toggleSongInList(String songName) {
+    setState(() {
+      if (songList.contains(songName)) {
+        songList.remove(songName);
+        print('Removed $songName from songList: $songList');
+      } else {
+        songList.add(songName);
+        print('Added $songName to songList: $songList');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Home"),
+        title: const Text("Select the songs for the game below:"),
       ),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
-              child: Container(),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(child: Text(_error!))
+                      : RawScrollbar(
+                          thickness: 6.0,
+                          thumbColor: Colors.lightBlue,
+                          child: ListView.builder(
+                            primary: true,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: _availableSongs.length,
+                            itemBuilder: (context, index) {
+                              final songName = _availableSongs[index];
+                              return ListTile(
+                                title: Text(songName),
+                                trailing: songList.contains(songName) ? const Icon(Icons.check) : null,
+                                onTap: () {
+                                  _toggleSongInList(songName);
+                                  // You might want to trigger the MusicPlayer to play the last selected song
+                                  // or have a separate "Play" button based on the songList.
+                                },
+                              );
+                            },
+                          ),
+                        ),
             ),
-            MusicPlayer(key: key, audioFileName: 's1.mp3'),
-            
+            MusicPlayer(
+                key: UniqueKey(),
+                storage: storage,
+                audioPlayer: audioPlayer,
+            ),
           ],
         ),
       ),

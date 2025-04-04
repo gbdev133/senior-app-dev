@@ -1,62 +1,53 @@
+// SongSelector.dart
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-
-
 class SongSelector extends StatefulWidget {
   final AudioPlayer audioPlayer;
-  final Function(String) onSongSelected; // Callback for when a song is selected
+  final Function(String) onSongSelected;
   final FirebaseStorage storage;
+
   SongSelector({
-    required this.audioPlayer, 
+    required this.audioPlayer,
     required this.onSongSelected,
     required this.storage,
-    Key? key,
-  }) : super(key: key);
+  });
 
   @override
   _SongSelectorState createState() => _SongSelectorState();
 }
 
 class _SongSelectorState extends State<SongSelector> {
-  List<String> _songs = [];
-  String _selectedSong = '';
-  final String _storagePath = 'audio/';
+  List<String> _availableSongs = [];
+  bool _isLoading = true;
+  String? _error;
+  String? curSong;
 
- @override
+  @override
   void initState() {
     super.initState();
-    _loadSongsFromFirebase();
+    _loadSongList();
   }
 
-  Future<void> _loadSongsFromFirebase() async {
+  Future<void> _loadSongList() async {
     try {
-      final ListResult result = await widget.storage // Use the passed instance
-          .ref(_storagePath)
-          .listAll();
-
-       // Extract the file names from the ListResult
-      final List<String> fileNames =
-          result.items.map((Reference ref) => ref.name).toList();
-
-      setState(() {
-        _songs = fileNames;
-        if (_songs.isNotEmpty) {
-          _selectedSong = _songs[0]; // Set the initial selected song
-          // Optionally, trigger the loading of the first song here if needed
-          widget.onSongSelected(_selectedSong);
-        }
-      });
-      for (String s in fileNames) {
-        print(s);
+      final ListResult result = await widget.storage.ref('audio').listAll();
+      final List<String> songNames = result.items.map((Reference ref) => ref.name).toList();
+      if (mounted) { 
+        setState(() {
+          _availableSongs = songNames;
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      print("Error loading songs from Firebase Storage: $e");
-      setState(() {
-        _songs = [];
-        _selectedSong = ''; // Ensure a default even on error
-      });
+      if (mounted) { 
+        setState(() {
+          _error = 'Error loading songs: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -64,27 +55,36 @@ class _SongSelectorState extends State<SongSelector> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text('Select a song:'),
-        DropdownButton<String>(
-          value: _selectedSong.isNotEmpty ? _selectedSong : null,
-          hint: const Text('No songs available'),
-          onChanged: _songs.isNotEmpty
-              ? (String? value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedSong = value;
-                      widget.onSongSelected(_selectedSong);
-                    });
+        if (_isLoading) 
+          const CircularProgressIndicator()
+        else if (_error != null)
+          Text(_error!)
+        else
+          Column(
+            children: [
+              Text('Play Music:'),
+              DropdownButton<String>(
+                value: curSong,
+                items: _availableSongs.map((String songName) {
+                  return DropdownMenuItem<String>(
+                    value: songName,
+                    child: Text(songName),
+                  );
+                }).toList(),
+                onChanged: (String? selectedSong) {
+                  if (selectedSong != null) {
+                    widget.onSongSelected(selectedSong);
+                    if (mounted) {
+                      setState(() {
+                        curSong = selectedSong;
+                      });
+                    }
                   }
-                }
-              : null,
-          items: _songs.map((song) {
-            return DropdownMenuItem<String>(
-              value: song,
-              child: Text(song),
-            );
-          }).toList(),
-        ),
+                },
+                hint: const Text('Select a song'),
+              ),
+            ],
+          ),
       ],
     );
   }

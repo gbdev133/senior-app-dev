@@ -19,8 +19,6 @@ class _ChatState extends State<Chat> {
     super.dispose();
   }
   
-
-
   void _addContact(String name) {
     setState(() {
       widget.contacts.add(
