@@ -13,6 +13,7 @@ import 'gamepage.dart';
 final FirebaseStorage storage = FirebaseStorage.instance;
 final AudioPlayer audioPlayer = AudioPlayer();
 List<String> songList = [];
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -107,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
               NavigationDestination(
                 icon: Icon(Icons.sports_esports),
-                label: "Memory Game",
+                label: "Memory Games",
               ),
 
               NavigationDestination(

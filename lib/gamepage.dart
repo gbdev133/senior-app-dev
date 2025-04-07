@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/widgets.dart';
 import 'dart:math';
 import 'game.dart';
 import 'questions.dart';
@@ -29,7 +30,7 @@ class _GamePageState extends State<GamePage> {
     List<String> tmp = List.from(widget.songList);
     List<Question> questions = [];
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 5; i++) {
       String correctAnswer = tmp[Random().nextInt(tmp.length)];
       tmp.remove(correctAnswer);
       List<String> options = [];
@@ -55,7 +56,6 @@ class _GamePageState extends State<GamePage> {
         correctAnswerIndex: correctAnswerIndex, 
         question: 'What is the name of this song?', 
         options: options,
-        songURL: extractAudio(correctAnswer).toString()
       ));
     }
 
@@ -66,27 +66,80 @@ class _GamePageState extends State<GamePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+    return GridView.count(
+      mainAxisSpacing: 10,
+      crossAxisCount: 2,
+      children: [
+        Column(
+          children: [
+            const Text('Guess the Song in \n10 Seconds', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+              ),
+              child: const Text('Begin', style: TextStyle(color: Color.fromARGB(222, 255, 255, 255))),
+              onPressed: () => {
+                if (widget.songList.length >= 4) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => Game(questions: genQuestions(), storage: widget.storage))
+                  )
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Not enough songs to play!"),
+                      duration: Duration(seconds: 3),
+                    )
+                  )
+                }
+              },
+            ),
+          ],
         ),
-        child: const Text('Begin'),
-        onPressed: () => {
-          if (widget.songList.length >= 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => Game(questions: genQuestions()))
-            )
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Not enough songs to play!"),
-                duration: Duration(seconds: 3),
-              )
-            )
-          }
-        },
-      ),
+        Column(
+          children: [
+            const Text('Game #2', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+              ),
+              onPressed: () => {
+              },
+              child: const Text('Begin', style: TextStyle(color: Color.fromARGB(222, 255, 255, 255))),
+
+            ),
+          ],
+        ),
+        Column(
+          children: [
+            const Text('Game #3', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+              ),
+              child: const Text('Begin', style: TextStyle(color: Color.fromARGB(222, 255, 255, 255))),
+              onPressed: () => {
+              },
+            ),
+          ],
+        ),
+        Column(
+          children: [
+            const Text('Game #4', style: TextStyle(fontSize: 24)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+              ),
+              child: const Text('Begin', style: TextStyle(color: Color.fromARGB(222, 255, 255, 255))),
+              onPressed: () => {
+              },
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

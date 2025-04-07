@@ -6,17 +6,18 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:summerapp/volume_slider.dart';
 import 'SongSelector.dart';
 
-class MusicPlayer extends StatefulWidget {
-  FirebaseStorage storage; AudioPlayer audioPlayer;
-  final String? audioFileName; // Add audioFileName as a parameter
+class QuizPlayer extends StatefulWidget {
+  FirebaseStorage storage;
+  final String audioFileName; 
+  final AudioPlayer audioPlayer;
 
-  MusicPlayer({super.key, required this.storage, this.audioFileName, required this.audioPlayer});
+  QuizPlayer({super.key, required this.storage, required this.audioFileName, required this.audioPlayer});
 
   @override
-  _MusicPlayerState createState() => _MusicPlayerState();
+ QuizPlayerState createState() => QuizPlayerState();
 }
 
-class _MusicPlayerState extends State<MusicPlayer> {
+class QuizPlayerState extends State<QuizPlayer> {
   String formatDuration(Duration d) {
     String minutes = d.inMinutes.toString();
     String seconds = (d.inSeconds - d.inMinutes * 60).toString().padLeft(2, '0');
@@ -35,9 +36,7 @@ class _MusicPlayerState extends State<MusicPlayer> {
   @override
   void initState() {
     super.initState();
-    if (widget.audioFileName != null) {
-      extractAudio(widget.audioFileName!);
-    }
+    extractAudio(widget.audioFileName);
     positionSubscription = widget.audioPlayer.positionStream.listen((p) {
     if (mounted) {
       setState(() => position = p);
@@ -53,7 +52,6 @@ class _MusicPlayerState extends State<MusicPlayer> {
         setState(() => duration = d);
       }
     });
-
   }
 
   @override
@@ -76,55 +74,39 @@ class _MusicPlayerState extends State<MusicPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData(
-        
-      ),
-      child: Column( 
-        children: [
-          SongSelector(
+    return Column(
+      children: [
+        Text("${formatDuration(position)}/${formatDuration(duration)}"),
+        Slider(
+          min: 0.0,
+          value: position.inSeconds.toDouble(),
+          max: duration.inSeconds.toDouble(),
+          onChanged: (double value) {
+            widget.audioPlayer.pause();
+            handleSeek(value);
+          },
+        ),
+        Ink(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black,
+          ),
+          child: IconButton(
+            iconSize: 35,
+            color: Colors.white,
+            icon: (widget.audioPlayer.playing
+                ? const Icon(Icons.pause)
+                : const Icon(Icons.play_arrow)),
+            onPressed: _playMusic,
+          ),
+        ),
+        SizedBox(
+          width: 200,
+          child: VolumeSlider(
             audioPlayer: widget.audioPlayer,
-            onSongSelected: (selectedSong) {
-              extractAudio(selectedSong);
-            },
-            storage: widget.storage,
-          ),
-          Text("${formatDuration(position)}/${formatDuration(duration)}"),
-          Slider(
-            min: 0.0,
-            value: position.inSeconds.toDouble(),
-            max: duration.inSeconds.toDouble(),
-            onChanged: (double value) {
-              widget.audioPlayer.pause();
-              handleSeek(value);
-            },
-          ),
-          Ink(
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black,
-            ),
-            child: IconButton(
-              iconSize: 35,
-              color: Colors.white,
-              icon: (widget.audioPlayer.playing
-                  ? const Icon(Icons.pause)
-                  : const Icon(Icons.play_arrow)),
-              onPressed: _playMusic,
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.volume_down),
-              VolumeSlider(
-                audioPlayer: widget.audioPlayer
-              ),
-              const Icon(Icons.volume_up),
-            ]
-          ),
-        ],
-      ),
+          )
+        ),
+      ],
     );
   }
 

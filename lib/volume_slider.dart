@@ -16,15 +16,13 @@ class _VolumeSliderState extends State<VolumeSlider> {
   @override
   Widget build(BuildContext context) {
     return Slider(
+      activeColor: const Color.fromARGB(255, 0, 30, 119),
       value: _volume,
       onChanged: (value) {
-        _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(milliseconds: 10), () {
           setState(() {
             _volume = value;
           });
           widget.audioPlayer.setVolume(value);
-        });
       },
     );
   }
