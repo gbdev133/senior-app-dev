@@ -204,8 +204,6 @@ class defaultPageState extends State<defaultPage> {
                                 trailing: songList.contains(songName) ? const Icon(Icons.check) : null,
                                 onTap: () {
                                   _toggleSongInList(songName);
-                                  // You might want to trigger the MusicPlayer to play the last selected song
-                                  // or have a separate "Play" button based on the songList.
                                 },
                               );
                             },
