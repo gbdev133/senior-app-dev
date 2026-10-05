@@ -1,4 +1,4 @@
-# Summer Memory Music
+# Memory Music App
 
 A Flutter-based music memory game designed to support seniors living with dementia by encouraging engagement, recognition, and enjoyment through familiar songs and simple interactions.
 
