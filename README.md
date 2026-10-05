@@ -4,7 +4,7 @@ A Flutter-based music memory game designed to support seniors living with dement
 
 ## Overview
 
-Summer Memory Music is a mobile app that helps seniors recognize, remember, and enjoy music in a calm and accessible way. The game uses familiar songs, large touch targets, and a clear user interface to reduce confusion and make the experience comfortable and rewarding.
+This is a mobile app that helps seniors recognize, remember, and enjoy music in a calm and accessible way. The game uses familiar songs, large touch targets, and a clear user interface to reduce confusion and make the experience comfortable and rewarding.
 
 The app is designed to be easy to use for both older adults and caregivers, with features that support personalization and flexible music content.
 
@@ -60,38 +60,6 @@ This project aims to create a low-stress, easy-to-use memory game that uses musi
   - Storage for audio files
   - Authentication support for future user access and management
 
-## Getting Started
-
-### Prerequisites
-
-- Flutter SDK installed
-- A Firebase project set up
-- Android/iOS simulator or device for testing
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/gbdev133/senior-app-dev.git
-   cd senior-app-dev
-   ```
-
-2. Install Flutter dependencies:
-   ```bash
-   flutter pub get
-   ```
-
-3. Configure Firebase:
-   - Create a Firebase project
-   - Add Android and/or iOS support
-   - Download and place the Firebase configuration files in the project
-   - Enable the services needed for audio and data management
-
-4. Run the app:
-   ```bash
-   flutter run
-   ```
-
 ## Firebase Music Integration
 
 This project is designed to support Firebase-based song loading so custom music collections can be used in the app. The Firebase setup can be used to store:
@@ -112,10 +80,6 @@ This allows caregivers or family members to add familiar, meaningful songs tailo
 - Caregiver dashboard for song management
 - Offline support for downloaded music
 - Analytics for usage and engagement
-
-## License
-
-This project is intended for educational and assistive use. Please check the repository license file for specific terms.
 
 ## Contributing
 
